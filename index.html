@@ -40,28 +40,52 @@
             const input = document.getElementById('inputText').value;
             const lines = input.split('\n');
             const output = [];
-            let inBlock = false;
+            
+            let inBlock = false; // [이름]: 아래의 텍스트인지 확인
+            let inQuote = false; // 현재 여러 줄 대사(" ") 내부에 있는지 확인
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 const trimmed = line.trim();
 
+                // 1. [이름]: 형태를 만나면 캐릭터 블록 시작, 대사 상태는 초기화
                 if (/^\[.+?\]:/.test(trimmed)) {
                     inBlock = true;
+                    inQuote = false; 
                     output.push(line);
                     continue;
                 }
 
                 if (inBlock) {
                     if (trimmed === '') {
+                        // 빈 줄은 대사 중이든 서술 중이든 그대로 유지
                         output.push(line);
-                    } else if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                    } 
+                    // 2-1. 여러 줄 대사의 '첫 줄' (따옴표로 시작하지만 끝나진 않음)
+                    else if (!inQuote && trimmed.startsWith('"') && !trimmed.endsWith('"')) {
+                        inQuote = true; // 대사 상태 ON
+                        output.push(line.replace(trimmed, trimmed.substring(1))); 
+                    } 
+                    // 2-2. 여러 줄 대사의 '마지막 줄' (따옴표로 끝남)
+                    else if (inQuote && trimmed.endsWith('"')) {
+                        inQuote = false; // 대사 상태 OFF
+                        output.push(line.replace(trimmed, trimmed.substring(0, trimmed.length - 1)));
+                    } 
+                    // 2-3. 여러 줄 대사의 '중간 줄' (따옴표 없이 텍스트만 있음)
+                    else if (inQuote) {
+                        output.push(line); 
+                    } 
+                    // 2-4. 딱 한 줄짜리 대사 (따옴표로 시작해서 따옴표로 끝남)
+                    else if (!inQuote && trimmed.startsWith('"') && trimmed.endsWith('"')) {
                         const dialog = trimmed.substring(1, trimmed.length - 1);
                         output.push(line.replace(trimmed, dialog));
-                    } else {
+                    } 
+                    // 2-5. 그 외의 모든 경우는 '서술'로 간주
+                    else {
                         output.push(line.replace(trimmed, `*${trimmed}*`));
                     }
                 } else {
+                    // 블록 밖의 문장들은 그대로 통과
                     output.push(line);
                 }
             }
@@ -69,24 +93,17 @@
             document.getElementById('outputText').value = output.join('\n');
         }
 
-        // TXT 파일 다운로드 함수
+        // TXT 다운로드 로직은 동일하게 유지
         function downloadTxt() {
             const text = document.getElementById('outputText').value;
-            
-            // 변환된 내용이 없을 때 예외 처리
             if (!text.trim()) {
                 alert('변환된 텍스트가 없습니다. 먼저 변환하기 버튼을 눌러주세요.');
                 return;
             }
-
-            // 한글이 깨지지 않도록 UTF-8 인코딩을 지정하여 Blob 생성
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            
-            // 임시 링크 생성 및 다운로드 트리거
             const link = document.createElement('a');
             
-            // 파일명에 다운로드 시점의 날짜(YYYYMMDD) 추가
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -97,8 +114,6 @@
             
             document.body.appendChild(link);
             link.click();
-            
-            // 사용한 임시 객체 삭제 및 정리
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         }
