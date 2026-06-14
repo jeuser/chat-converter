@@ -29,19 +29,42 @@
     <script>
         function convertText() {
             const input = document.getElementById('inputText').value;
-            
-            // 변환 핵심 로직 (정규표현식)
-            // 1. (\[.+?\]:\s*\n) -> [이름]: 과 줄바꿈을 찾음
-            // 2. ([^"]+?) -> 큰따옴표가 시작되기 전까지의 서술 부분을 찾음 (여러 줄 포함)
-            // 3. \n"([^"]+)" -> 큰따옴표 안의 대사 부분을 찾음
-            const regex = /(\[.+?\]:\s*\n)([^"]+?)\n"([^"]+)"/g;
-            
-            const output = input.replace(regex, (match, name, desc, dialogue) => {
-                // 서술 양옆에 *를 붙이고, 대사의 큰따옴표는 제거
-                return `${name}*${desc.trim()}*\n${dialogue.trim()}`;
-            });
-            
-            document.getElementById('outputText').value = output;
+            const lines = input.split('\n'); // 텍스트를 줄 단위로 쪼갬
+            const output = [];
+            let inBlock = false; // 현재 [이름]: 블록 아래를 읽고 있는지 여부
+        
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+        
+                // 1. [이름]: 형태의 줄인지 확인 (새로운 캐릭터의 턴 시작)
+                if (/^\[.+?\]:/.test(trimmed)) {
+                    inBlock = true;
+                    output.push(line);
+                    continue;
+                }
+        
+                // 2. 캐릭터의 턴 내부일 때의 처리
+                if (inBlock) {
+                    if (trimmed === '') {
+                        // 빈 줄(줄바꿈)은 건드리지 않고 그대로 유지!
+                        output.push(line);
+                    } else if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                        // 큰따옴표로 둘러싸인 대사: 양끝의 큰따옴표만 깔끔하게 제거
+                        const dialog = trimmed.substring(1, trimmed.length - 1);
+                        output.push(line.replace(trimmed, dialog));
+                    } else {
+                        // 그 외의 모든 텍스트(서술): 양옆에 * 추가
+                        output.push(line.replace(trimmed, `*${trimmed}*`));
+                    }
+                } else {
+                    // [이름]: 블록 밖의 텍스트(예: 일반 안내문 등)는 그대로 둠
+                    output.push(line);
+                }
+            }
+        
+            // 배열에 모인 줄들을 다시 줄바꿈으로 연결해서 출력
+            document.getElementById('outputText').value = output.join('\n');
         }
     </script>
 </body>
