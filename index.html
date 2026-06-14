@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅 백업 변환기</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f9f9f9; }
+        .container { display: flex; gap: 20px; }
+        .box { flex: 1; display: flex; flex-direction: column; }
+        textarea { width: 100%; height: 500px; padding: 15px; font-size: 15px; border: 1px solid #ccc; border-radius: 8px; resize: none; box-sizing: border-box; }
+        button { padding: 12px 24px; font-size: 16px; font-weight: bold; margin: 0 0 20px 0; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 5px; width: 150px; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h2>채팅 로그 변환기</h2>
+    <button onclick="convertText()">변환하기</button>
+    <div class="container">
+        <div class="box">
+            <h3>원본 텍스트</h3>
+            <textarea id="inputText" placeholder="여기에 백업한 텍스트를 붙여넣으세요..."></textarea>
+        </div>
+        <div class="box">
+            <h3>변환된 텍스트</h3>
+            <textarea id="outputText" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        function convertText() {
+            const input = document.getElementById('inputText').value;
+            
+            // 변환 핵심 로직 (정규표현식)
+            // 1. (\[.+?\]:\s*\n) -> [이름]: 과 줄바꿈을 찾음
+            // 2. ([^"]+?) -> 큰따옴표가 시작되기 전까지의 서술 부분을 찾음 (여러 줄 포함)
+            // 3. \n"([^"]+)" -> 큰따옴표 안의 대사 부분을 찾음
+            const regex = /(\[.+?\]:\s*\n)([^"]+?)\n"([^"]+)"/g;
+            
+            const output = input.replace(regex, (match, name, desc, dialogue) => {
+                // 서술 양옆에 *를 붙이고, 대사의 큰따옴표는 제거
+                return `${name}*${desc.trim()}*\n${dialogue.trim()}`;
+            });
+            
+            document.getElementById('outputText').value = output;
+        }
+    </script>
+</body>
+</html>
